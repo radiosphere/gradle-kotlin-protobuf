@@ -1,60 +1,55 @@
-# protobuf-example Project
+# gradle-kotlin-protobuf-example Project
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+This project shows how to use the Infinispan annotation processor `org.infinispan.protostream:protostream-processor` to generate your protobuf classes when you're using Gradle and Kotlin.
 
-If you want to learn more about Quarkus, please visit its website: https://quarkus.io/ .
+You can find the processor project [here](https://github.com/infinispan/protostream), where it is outlined how you can use the project together with `Maven`.
 
-## Running the application in dev mode
-
-You can run your application in dev mode that enables live coding using:
-```shell script
-./gradlew quarkusDev
+With `Gradle` there's one initial challenge of getting the annotation processor to run. If you're running a java project this is done using:
+```
+    annotationProcessor 'org.infinispan.protostream:protostream-processor:4.4.0.Final'
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:8080/q/dev/.
-
-## Packaging and running the application
-
-The application can be packaged using:
-```shell script
-./gradlew build
+To get it to work when you're using kotlin you need to use `kapt`, it's the annotations processor for `kotlin` and `gradle`. You do this by adding the plugin in your build.gradle:
 ```
-It produces the `quarkus-run.jar` file in the `build/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `build/quarkus-app/lib/` directory.
-
-The application is now runnable using `java -jar build/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-```shell script
-./gradlew build -Dquarkus.package.type=uber-jar
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version "1.5.31"
+    id "org.jetbrains.kotlin.plugin.allopen" version "1.5.31"
+    id 'io.quarkus'
+}
+apply plugin: 'kotlin-kapt'
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar build/*-runner.jar`.
+Then you add the annotations processor in your build.gradle:
+```
+dependencies {
+    implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
+    implementation 'io.quarkus:quarkus-infinispan-client'
+    ...
 
-## Creating a native executable
-
-You can create a native executable using: 
-```shell script
-./gradlew build -Dquarkus.package.type=native
+    compileOnly 'org.infinispan.protostream:protostream-processor:4.4.1.Final'
+    kapt    'org.infinispan.protostream:protostream-processor:4.4.1.Final'
+}
 ```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using: 
-```shell script
-./gradlew build -Dquarkus.package.type=native -Dquarkus.native.container-build=true
+Now it's just about annotating your class in a way that works. A Java class would look like this:
+```
+@Data
+public class CounterState {
+    private Long index;
+
+    @ProtoFactory
+    public CounterState(Long index) {
+        this.index = index;
+    }
+
+    @ProtoField(number = 1)
+    public Long getIndex() {
+        return index;
+    }
+}
 ```
 
-You can then execute your native executable with: `./build/protobuf-example-1.0.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please consult https://quarkus.io/guides/gradle-tooling.
-
-## Related Guides
-
-- Kotlin ([guide](https://quarkus.io/guides/kotlin)): Write your services in Kotlin
-
-## Provided Code
-
-### RESTEasy JAX-RS
-
-Easily start your RESTful Web Services
-
-[Related guide section...](https://quarkus.io/guides/getting-started#the-jax-rs-resources)
+It's possible to squeeze this into a kotlin data class though:
+```
+data class CounterState(@get:ProtoField(number = 1) var index: Long? = null) {
+```

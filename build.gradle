@@ -21,8 +21,6 @@ dependencies {
     testImplementation 'io.rest-assured:rest-assured'
 //    annotationProcessor 'org.infinispan.protostream:protostream-processor:4.4.0.Final'
 
-//    implementation project(":gradle-java-protobuf")
-
     compileOnly 'org.infinispan.protostream:protostream-processor:4.4.1.Final'
     kapt    'org.infinispan.protostream:protostream-processor:4.4.1.Final'
 }
